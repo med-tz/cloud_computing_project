@@ -92,7 +92,7 @@ class Excution_time:
         plt.ylabel("Execution time (seconds)")
         plt.grid(True)
         plt.legend()
-        plt.savefig("pca_comparison_NIPAL.png")
+        plt.savefig("results/pca_comparison_NIPAL.png")
 
 
     def main(self):
