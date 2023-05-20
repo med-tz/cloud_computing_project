@@ -30,7 +30,7 @@ class pca_nipals_gpu:
         p = np.zeros((size,)).astype(np.float32)
         t_old = np.zeros_like(t)  
         out_1 = np.zeros_like(t)
-        out_2 = np.zeros(1, dtype=np.float32)
+        out_2 = np.float32(0)
         output_t = np.zeros(1, dtype=np.float32)
         output_p = np.zeros(1, dtype=np.float32)
 
@@ -38,12 +38,16 @@ class pca_nipals_gpu:
         p_gpu = gpuarray.to_gpu(p)
         t_old_gpu = gpuarray.to_gpu(t_old)
         out_1_gpu = gpuarray.to_gpu(out_1)
-        out_2_gpu = gpuarray.to_gpu(out_2)
+        out_2_gpu = gpuarray.to_gpu(np.array([out_2]))
         output_gpu_th = gpuarray.to_gpu(output_t)
         output_gpu_ph = gpuarray.to_gpu(output_p)
-        it=0
-        while  (self.class_object.calculateVectorNorm( self.class_object.subtractVectors(t_gpu,t_old_gpu,out_1_gpu,size),out_2_gpu,size) > self.tol**2 ) and (it < self.max_iter):
-            t_old_gpu = t_gpu
+        for it in range(self.max_iter):
+            out_1_gpu=self.class_object.subtractVectors(t_gpu,t_old_gpu,out_1_gpu,size)
+            out_1_cpu = out_1_gpu.get()
+            out_2_cpu = np.linalg.norm(out_1_cpu)
+            if out_2_cpu < self.tol:
+              break
+            t_old_gpu = t_gpu.copy()
             self.class_object.multiplyTransposeMatrixVector(X_gpu, t_gpu, p_gpu, size)
             self.class_object.calculateVectorNorm(t_gpu, output_gpu_th, size)
             numpy_array = output_gpu_th.get()
@@ -60,8 +64,6 @@ class pca_nipals_gpu:
             single_value_2 = float(numpy_array[0])
             self.class_object.divideVectorByNumber(t_gpu,single_value_2,size)
             X_gpu = self.class_object.update(X_gpu, t_gpu, p_gpu,size)
-            print(self.class_object.calculateVectorNorm( self.class_object.subtractVectors(t_gpu,t_old_gpu,out_1_gpu,size),out_2_gpu,size))
-            it+=1
         return(X_gpu)
     
     def nipals_gpu(self,X):
